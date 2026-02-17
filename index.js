@@ -58,7 +58,7 @@ app.post('/api/todos', (req, res) => {
   
   const todos = readTodos();
   const newTodo = {
-    id: Date.now(),
+    id: Date.now() + Math.floor(Math.random() * 1000),
     text: text.trim(),
     completed: false,
     createdAt: new Date().toISOString()
@@ -73,21 +73,36 @@ app.post('/api/todos', (req, res) => {
   }
 });
 
-// Toggle todo completion
+// Update todo (edit text and/or toggle/set completion)
 app.put('/api/todos/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { completed } = req.body;
+  const { completed, text } = req.body || {};
   const todos = readTodos();
   const todoIndex = todos.findIndex(t => t.id === id);
-  
+
   if (todoIndex === -1) {
     return res.status(404).json({ error: 'Todo not found' });
   }
-  if (typeof completed === 'boolean') {
-    todos[todoIndex].completed = completed;
-  } else {
+
+  const hasText = typeof text !== 'undefined';
+  const hasCompleted = typeof completed !== 'undefined';
+
+  // If text provided, validate and update
+  if (hasText) {
+    if (typeof text !== 'string' || text.trim() === '') {
+      return res.status(400).json({ error: 'Todo text is required' });
+    }
+    todos[todoIndex].text = text.trim();
+  }
+
+  // If completed explicitly provided, set it.
+  // If not provided and no text update, perform toggle (legacy behavior).
+  if (hasCompleted) {
+    todos[todoIndex].completed = !!completed;
+  } else if (!hasText) {
     todos[todoIndex].completed = !todos[todoIndex].completed;
   }
+
   todos[todoIndex].updatedAt = new Date().toISOString();
 
   if (writeTodos(todos)) {
