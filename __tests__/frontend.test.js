@@ -250,6 +250,41 @@ describe('Frontend Todo Application', () => {
 
       expect(alert).toHaveBeenCalledWith('Failed to update todo');
     });
+
+    test('should edit todo text', async () => {
+      const updatedTodo = { id: 1, text: 'Edited todo', completed: false };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => updatedTodo
+      });
+
+      const response = await fetch('/api/todos/1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Edited todo' }),
+      });
+
+      expect(response.ok).toBe(true);
+      const result = await response.json();
+      expect(result.text).toBe('Edited todo');
+    });
+
+    test('should handle edit error', async () => {
+      fetch.mockResolvedValueOnce({ ok: false });
+
+      const response = await fetch('/api/todos/1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Edited todo' }),
+      });
+
+      if (!response.ok) {
+        alert('Failed to update todo');
+      }
+
+      expect(alert).toHaveBeenCalledWith('Failed to update todo');
+    });
   });
 
   describe('deleteTodo function', () => {

@@ -97,13 +97,82 @@ async function deleteTodo(id) {
     }
 }
 
+// Start editing a todo (inline)
+function startEdit(id) {
+    const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+    if (!item) return;
+    const textSpan = item.querySelector('.todo-text');
+    const currentText = textSpan ? textSpan.textContent : '';
+
+    // hide other controls
+    item.querySelectorAll('.edit-btn, .delete-btn, .todo-checkbox').forEach(el => el.style.display = 'none');
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-input';
+    input.value = currentText;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.className = 'save-btn';
+    saveBtn.onclick = () => saveEdit(id);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'cancel-btn';
+    cancelBtn.onclick = () => cancelEdit(id);
+
+    textSpan.replaceWith(input);
+    item.appendChild(saveBtn);
+    item.appendChild(cancelBtn);
+}
+
+function cancelEdit(id) {
+    renderTodos();
+}
+
+// Save edited text
+async function saveEdit(id) {
+    const item = document.querySelector(`.todo-item[data-id="${id}"]`);
+    if (!item) return;
+    const input = item.querySelector('.edit-input');
+    if (!input) return;
+    const newText = input.value.trim();
+    if (!newText) {
+        alert('Please enter a todo');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: newText }),
+        });
+
+        if (response.ok) {
+            const updatedTodo = await response.json();
+            const index = todos.findIndex(t => t.id === id);
+            if (index !== -1) {
+                todos[index] = updatedTodo;
+                renderTodos();
+            }
+        } else {
+            alert('Failed to update todo');
+        }
+    } catch (error) {
+        console.error('Error saving todo:', error);
+        alert('Failed to update todo');
+    }
+}
+
 // Render todos to the DOM
 function renderTodos() {
     if (todos.length === 0) {
         todoList.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
     } else {
         todoList.innerHTML = todos.map(todo => `
-            <div class="todo-item ${todo.completed ? 'completed' : ''}">
+            <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
                 <input 
                     type="checkbox" 
                     class="todo-checkbox" 
@@ -111,6 +180,7 @@ function renderTodos() {
                     onchange="toggleTodo(${todo.id})"
                 />
                 <span class="todo-text">${escapeHtml(todo.text)}</span>
+                <button class="edit-btn" onclick="startEdit(${todo.id})">Edit</button>
                 <button class="delete-btn" onclick="deleteTodo(${todo.id})">Delete</button>
             </div>
         `).join('');
