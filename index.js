@@ -76,6 +76,7 @@ app.post('/api/todos', (req, res) => {
 // Toggle todo completion
 app.put('/api/todos/:id', (req, res) => {
   const id = parseInt(req.params.id);
+  const { completed } = req.body;
   const todos = readTodos();
   const todoIndex = todos.findIndex(t => t.id === id);
   
@@ -94,7 +95,6 @@ app.put('/api/todos/:id', (req, res) => {
   } else {
     res.status(500).json({ error: 'Failed to update todo' });
   }
-  // todos[todoIndex].completed = true;
 });
 
 // Delete a todo
